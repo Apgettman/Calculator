@@ -1,139 +1,156 @@
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Scanner;
 
 public class Calculator {
 
-    public static void main(String[] args) throws IllegalAccessException {
-
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         String input = scanner.nextLine();
+        String[] splitInput = input.split(" ");
 
-        String[] tokens = input.split("");
-
-        if (tokens.length != 3) {
-            throw new IllegalAccessException("Неправильный формат ввода");
+        if (splitInput.length != 3) {
+            throw new IllegalArgumentException("Некорректный формат ввода");
         }
-        String operand1 = tokens[0];
-        String operator = tokens[1];
-        String operand2 = tokens[2];
 
-        int num1, num2;
+        String firstOperand = splitInput[0];
+        String operator = splitInput[1];
+        String secondOperand = splitInput[2];
 
-        boolean isRoman = false;
+        if (!isOperandValid(firstOperand) || !isOperandValid(secondOperand)) {
+            throw new IllegalArgumentException("Операнды должны быть числами от 1 до 10");
+        }
 
-        try {
-            num1 = Integer.parseInt(operand1);
-            num2 = Integer.parseInt(operand2);
-        } catch (NumberFormatException e) {
+        boolean isArabic = isArabic(firstOperand) && isArabic(secondOperand);
+        boolean isRoman = isRoman(firstOperand) && isRoman(secondOperand);
 
-            // Если числа нельзя преобразовать в int, то проверяем, являются ли они римскими цифрами
-
-            num1 = convertRomanToArabic(operand1);
-            num2 = convertRomanToArabic(operand2);
-
-            isRoman = true;
+        if (!isArabic && !isRoman) {
+            throw new IllegalArgumentException("Операнды должны быть либо арабскими, либо римскими числами");
         }
 
         int result;
-        switch (operator) {
-
-            case "+":
-                result = num1 + num2;
-                break;
-
-            case "-":
-                result = num1 - num2;
-                break;
-
-            case "*":
-                result = num1 * num2;
-                break;
-
-            case "/":
-                result = num1 / num2;
-                break;
-
-            default:
-                throw new IllegalAccessException("Неправильный оператор");
+        if (isArabic) {
+            int firstNumber = Integer.parseInt(firstOperand);
+            int secondNumber = Integer.parseInt(secondOperand);
+            result = calculate(firstNumber, operator, secondNumber);
+        } else {
+            int firstNumber = convertToArabic(firstOperand);
+            int secondNumber = convertToArabic(secondOperand);
+            result = calculate(firstNumber, operator, secondNumber);
         }
 
         String output;
-        if (isRoman) {
-            output = convertArabicToRoman(result);
-
-        } else {
-
+        if (isArabic) {
             output = String.valueOf(result);
+        } else {
+            output = convertToRoman(result);
         }
         System.out.println(output);
-
     }
 
-    private static int convertRomanToArabic(String romanNumber) {
-        // Создаем отображение римских символов и соответствующих им арабских чисел
-
-        Map<Character, Integer> romanToArabic = new HashMap<>();
-
-        romanToArabic.put('I', 1);
-        romanToArabic.put('V', 5);
-        romanToArabic.put('X', 10);
-        romanToArabic.put('L', 50);
-        romanToArabic.put('C', 100);
-        romanToArabic.put('D', 500);
-        romanToArabic.put('M', 1000);
-
-        int arabicNumber = 0;
-        int prevValue = 0;
-
-        // Проходим по символам римского числа и вычисляем соответсвующее арабское число
-
-        for (int i = romanNumber.length() - 1; i >= 0; i--) {
-            int currentValue = romanToArabic.get(romanNumber.charAt(i));
-            if (currentValue < prevValue) {
-                arabicNumber -= currentValue;
-
-            } else {
-
-                arabicNumber += currentValue;
-            }
-            prevValue = currentValue;
+    private static boolean isOperandValid(String operand) {
+        try {
+            int number = Integer.parseInt(operand);
+            return number >= 1 && number <= 10;
+        } catch (NumberFormatException e) {
+            return false;
         }
-        return arabicNumber;
     }
 
-    private static String convertArabicToRoman(int arabicNumber) {
+    private static boolean isArabic(String operand) {
+        try {
+            Integer.parseInt(operand);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
 
-        // Создаем отоброжение арабских чисел и соответсвующих им римских символов
+    private static boolean isRoman(String operand) {
+        String romanNumerals = "IVXLCDM";
+        for (char c : operand.toCharArray()) {
+            if (!romanNumerals.contains(String.valueOf(c))) {
+                return false;
+            }
+        }
+        return true;
+    }
 
-        Map<Integer, String> arabicToRoman = new HashMap<>();
+    private static int calculate(int firstOperand, String operator, int secondOperand) {
+        switch (operator) {
+            case "+":
+                return firstOperand + secondOperand;
+            case "-":
+                return firstOperand - secondOperand;
+            case "*":
+                return firstOperand * secondOperand;
+            case "/":
+                return firstOperand / secondOperand;
+            default:
+                throw new IllegalArgumentException("Некорректный оператор");
+        }
+    }
 
-        arabicToRoman.put(1, "I");
-        arabicToRoman.put(4, "IV");
-        arabicToRoman.put(5, "V");
-        arabicToRoman.put(9, "IX");
-        arabicToRoman.put(10, "X");
-        arabicToRoman.put(40, "XL");
-        arabicToRoman.put(50, "L");
-        arabicToRoman.put(90, "XC");
-        arabicToRoman.put(100, "C");
-        arabicToRoman.put(400, "CD");
-        arabicToRoman.put(500, "D");
-        arabicToRoman.put(900, "CM");
-        arabicToRoman.put(1000, "M");
+    private static int convertToArabic(String romanNumeral) {
+        int result = 0;
+
+        int index = 0;
+        while (index < romanNumeral.length()) {
+            int currentDigit = getValue(romanNumeral.charAt(index));
+            if (index + 1 < romanNumeral.length()) {
+                int nextDigit = getValue(romanNumeral.charAt(index + 1));
+                if (currentDigit >= nextDigit) {
+                    result += currentDigit;
+                    index++;
+                } else {
+                    result += nextDigit - currentDigit;
+                    index += 2;
+                }
+            } else {
+                result += currentDigit;
+                index++;
+            }
+        }
+
+        return result;
+    }
+
+    private static int getValue(char romanDigit) {
+        switch (romanDigit) {
+            case 'I':
+                return 1;
+            case 'V':
+                return 5;
+            case 'X':
+                return 10;
+            case 'L':
+                return 50;
+            case 'C':
+                return 100;
+            case 'D':
+                return 500;
+            case 'M':
+                return 1000;
+            default:
+                throw new IllegalArgumentException("Некорректные символы в римском числе");
+        }
+    }
+
+    private static String convertToRoman(int arabicNumber) {
+        if (arabicNumber < 1 || arabicNumber > 3999) {
+            throw new IllegalArgumentException("Арабское число должно быть от 1 до 3999");
+        }
 
         StringBuilder romanNumber = new StringBuilder();
+        int[] values = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
+        String[] symbols = {"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"};
 
-        int[] arabicValues = {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1};
-
-        // Проходим по арабским числам и вычесляем соответствующее римское число
-
-        for (int arabicValue : arabicValues) {
-
-            while (arabicNumber >= arabicValue) {
-                romanNumber.append(arabicToRoman.get(arabicValue));
-                arabicNumber = arabicValue;
+        int index = 0;
+        while (arabicNumber > 0) {
+            int quotient = arabicNumber / values[index];
+            for (int i = 0; i < quotient; i++) {
+                romanNumber.append(symbols[index]);
+                arabicNumber -= values[index];
             }
+            index++;
         }
 
         return romanNumber.toString();
